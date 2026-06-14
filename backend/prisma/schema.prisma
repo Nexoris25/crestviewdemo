@@ -1,0 +1,57 @@
+// CrestView leads database (SQLite via Prisma).
+// SQLite has no native enum/array types, so JSON-encoded strings are used where
+// a list is needed (reasons, toneSignals, draftEmail).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Lead {
+  id        String  @id @default(cuid())
+
+  // Submitted by the contact form
+  fullName  String
+  company   String
+  email     String
+  phone     String?
+  location  String?
+  service   String? // service of interest
+  message   String
+  consent   Boolean @default(false)
+  source    String  @default("website")
+
+  // AI (Gemini) analysis
+  status      String  @default("New") // Hot | Warm | Cold | New
+  score       Int     @default(0) // 0 - 100
+  summary     String?
+  reasons     String? // JSON: string[]
+  toneSignals String? // JSON: string[]
+  nextStep    String?
+  emailSubject String?
+  emailBody    String?
+  aiPowered    Boolean @default(false) // true when Gemini produced the analysis
+
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  activities Activity[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Activity {
+  id      String  @id @default(cuid())
+  type    String // lead_submitted | email_generated | status_updated | ai_analysis
+  message String
+  leadId  String?
+  lead    Lead?   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

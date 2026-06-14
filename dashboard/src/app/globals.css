@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* CrestView admin dashboard — shares the brand system with the marketing site. */
+@theme {
+  --color-navy: #050d42;
+  --color-navy-deep: #04092f;
+  --color-orange: #d67105;
+  --color-orange-dark: #b85f04;
+  --color-cream: #fcf6ef;
+  --color-ink: #281501;
+  --color-body: #494a53;
+  --color-muted: #8a8d96;
+  --color-line: #e9eaea;
+  --color-canvas: #f6f7fb; /* app background */
+
+  /* lead status */
+  --color-hot: #e5484d;
+  --color-warm: #e0820c;
+  --color-cold: #2f9e6f;
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), ui-serif, Georgia, serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-canvas);
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    line-height: 1.55;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    color: var(--color-ink);
+  }
+  img,
+  svg {
+    max-width: 100%;
+  }
+
+  /* Every interactive element shows the pointer cursor. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  summary,
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

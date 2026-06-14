@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/*
+  CrestView design system — tokens extracted from the Figma source.
+  Headings: Playfair Display (serif). Body/UI: Inter (sans).
+*/
+@theme {
+  --color-navy: #050d42; /* header / primary dark */
+  --color-navy-deep: #04092f; /* brand — dark sections / footer */
+  --color-navy-soft: #0c1559; /* hover / raised dark surfaces */
+  --color-orange: #d67105; /* brand accent */
+  --color-orange-dark: #b85f04; /* accent hover */
+  --color-cream: #fcf6ef; /* warm panel background */
+  --color-cream-soft: #fffbf6; /* lighter warm background */
+  --color-ink: #281501; /* headings on light (Figma Text:main) */
+  --color-body: #494a53; /* body copy (Figma Text:secondary) */
+  --color-muted: #6b7280; /* tertiary copy */
+  --color-line: #e9eaea; /* hairline borders (Figma Stroke 1) */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif; /* body = Inter */
+  --font-serif: var(--font-poppins), ui-sans-serif, system-ui, sans-serif; /* headings = Poppins */
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: #ffffff;
+    color: var(--color-body);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-serif);
+    color: var(--color-ink);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  /* Prevent any element from forcing horizontal scroll on narrow screens. */
+  img,
+  svg,
+  video {
+    max-width: 100%;
+  }
+
+  /* Every interactive element shows the pointer cursor. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for],
+  summary,
+  select,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="button"] {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+@layer utilities {
+  /* Small-caps style overline used across every section. */
+  .eyebrow {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
