@@ -42,7 +42,7 @@ export function PageHero({
         className="-z-10 object-cover"
       />
       <div
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-navy-deep/80 via-navy-deep/55 to-navy-deep/85"
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-navy-deep/65 via-navy-deep/35 to-navy-deep/70"
         aria-hidden
       />
 

@@ -1,13 +1,12 @@
-// CrestView leads database (SQLite via Prisma).
-// SQLite has no native enum/array types, so JSON-encoded strings are used where
-// a list is needed (reasons, toneSignals, draftEmail).
+// CrestView leads database (PostgreSQL via Prisma).
+// A few list fields (reasons, toneSignals) are stored as JSON-encoded strings.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

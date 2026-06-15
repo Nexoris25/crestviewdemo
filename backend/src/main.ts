@@ -10,7 +10,7 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
 
-  const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3002')
+  const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:3003,http://localhost:3002')
     .split(',')
     .map((o) => o.trim());
   app.enableCors({ origin: origins, credentials: true });
