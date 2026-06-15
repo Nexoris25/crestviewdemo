@@ -4,7 +4,7 @@ import { useId, useState } from "react";
 import { Button } from "@/components/ui";
 import { CheckCircleIcon } from "@/components/icons";
 import { AssistantChat } from "@/components/assistant/assistant-chat";
-import { SERVICES } from "@/lib/site";
+import { SERVICES, CONTACT } from "@/lib/site";
 import { submitLead } from "@/lib/api";
 
 type Tab = "form" | "assistant";
@@ -80,7 +80,7 @@ function TabButton({
 function ContactForm() {
   const formId = useId();
   const [message, setMessage] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
 
   if (status === "done") {
     return (
@@ -113,16 +113,20 @@ function ContactForm() {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
         setStatus("sending");
-        await submitLead({
-          fullName: String(fd.get("name") ?? ""),
-          company: String(fd.get("company") ?? ""),
-          email: String(fd.get("email") ?? ""),
-          phone: String(fd.get("phone") ?? ""),
-          service: String(fd.get("service") ?? ""),
-          message: String(fd.get("message") ?? ""),
-          consent: fd.get("consent") === "on",
-        });
-        setStatus("done");
+        try {
+          await submitLead({
+            fullName: String(fd.get("name") ?? ""),
+            company: String(fd.get("company") ?? ""),
+            email: String(fd.get("email") ?? ""),
+            phone: String(fd.get("phone") ?? ""),
+            service: String(fd.get("service") ?? ""),
+            message: String(fd.get("message") ?? ""),
+            consent: fd.get("consent") === "on",
+          });
+          setStatus("done");
+        } catch {
+          setStatus("error");
+        }
       }}
     >
       <div>
@@ -186,6 +190,16 @@ function ContactForm() {
         <input type="checkbox" name="consent" required className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-orange focus:ring-orange" />
         <span>I agree to be contacted by CrestView group regarding my enquiry.</span>
       </label>
+
+      {status === "error" && (
+        <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          Sorry, your message couldn&apos;t be sent. Please try again, or reach us directly at{" "}
+          <a href={`mailto:${CONTACT.email}`} className="font-medium underline">
+            {CONTACT.email}
+          </a>
+          .
+        </p>
+      )}
 
       <Button type="submit" className="w-full" withArrow disabled={status === "sending"}>
         {status === "sending" ? "Sending…" : "Send message"}

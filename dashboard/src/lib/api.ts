@@ -1,8 +1,27 @@
 import { getToken, clearSession } from "./auth";
 import type { AuthUser, Lead, Stats } from "./types";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:3001/api";
+/**
+ * Resolves the API base at runtime so one build/.env works everywhere:
+ *   1. NEXT_PUBLIC_API_URL override, if set;
+ *   2. localhost when running on localhost (local dev);
+ *   3. the deployed production API otherwise.
+ */
+const PROD_API_URL = "https://cv-api.nexoristech.com/api";
+
+function apiBase(): string {
+  const override = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "");
+  if (override) return override;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+      return "http://localhost:3001/api";
+    }
+  }
+  return PROD_API_URL;
+}
+
+export const API_BASE = apiBase();
 
 class ApiError extends Error {
   constructor(
@@ -15,7 +34,7 @@ class ApiError extends Error {
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

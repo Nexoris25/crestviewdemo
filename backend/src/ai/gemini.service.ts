@@ -59,16 +59,19 @@ export class GeminiService {
   async regenerateEmail(input: LeadAnalysisInput, status: string): Promise<LeadEmail> {
     if (this.client) {
       try {
-        const prompt = `You are a consultant at Crestview Group, a business consulting firm.
-Write a warm, concise follow-up email (120-170 words) to a prospective client who submitted an enquiry.
-Vary the wording from any previous version. Return ONLY JSON: {"subject": string, "body": string}.
+        const prompt = `You are a consultant at Crestview Group, a business consulting firm, writing a follow-up email to a prospective client who submitted an enquiry.
+Write it as a knowledgeable, personable human talking to a real person: warm, clear and confident, never robotic or salesy. 120-170 words. Vary the wording from any previous version.
+Rules (important):
+- Do NOT use em dashes or en dashes anywhere. Use commas, periods, or separate sentences instead.
+- Format as a real email: a greeting line, then 2-3 short paragraphs separated by a blank line, then a sign-off ("Kind regards," on one line and "The Crestview Group Team" on the next).
+Return ONLY JSON: {"subject": string, "body": string}.
 Prospect: ${input.fullName} at ${input.company}. Service of interest: ${input.service || 'general consulting'}.
 Lead temperature: ${status}.
 Their message: """${input.message}"""`;
         const text = await this.generate(prompt, true);
         const parsed = this.parseJson(text);
         if (parsed?.subject && parsed?.body) {
-          return { subject: String(parsed.subject), body: String(parsed.body) };
+          return this.cleanEmail({ subject: String(parsed.subject), body: String(parsed.body) });
         }
       } catch (err) {
         this.logger.error(`Gemini regenerateEmail failed, using fallback: ${String(err)}`);
@@ -169,6 +172,10 @@ Analyse this inbound enquiry and respond with ONLY a JSON object of this exact s
   "nextStep": string,                // one recommended next action for the sales team (1-2 sentences)
   "email": { "subject": string, "body": string }  // a warm 120-170 word follow-up email
 }
+Email writing rules (important):
+- Write as a knowledgeable, personable human talking to a real person: warm, clear and confident, never robotic or salesy.
+- Do NOT use em dashes or en dashes anywhere. Use commas, periods, or separate sentences instead.
+- Format it as a real email: a greeting line, then 2-3 short paragraphs separated by a blank line, then a sign-off ("Kind regards," on one line and "The Crestview Group Team" on the next).
 Services offered: ${SERVICES.join(', ')}.
 Prospect: ${input.fullName} at ${input.company} (${input.email}${input.phone ? ', ' + input.phone : ''}).
 Service of interest: ${input.service || 'not specified'}.
@@ -216,7 +223,7 @@ Their message: """${input.message}"""`;
       reasons: this.toStringArray(parsed.reasons, 5),
       toneSignals: this.toStringArray(parsed.toneSignals, 3),
       nextStep: String(parsed.nextStep || this.fallbackNextStep(statusFromScore(score))),
-      email,
+      email: this.cleanEmail(email),
       aiPowered,
     };
   }
@@ -224,6 +231,22 @@ Their message: """${input.message}"""`;
   private toStringArray(value: any, max: number): string[] {
     if (!Array.isArray(value)) return [];
     return value.map((v) => String(v)).filter(Boolean).slice(0, max);
+  }
+
+  /** Ensures a generated email contains no em/en dashes and stays tidy. */
+  private cleanEmail(email: LeadEmail): LeadEmail {
+    return {
+      subject: this.noEmDashes(email.subject).trim(),
+      body: this.noEmDashes(email.body).trim(),
+    };
+  }
+
+  private noEmDashes(text: string): string {
+    return text
+      .replace(/[ \t]*[—–][ \t]*/g, ', ') // em/en dash -> ", "
+      .replace(/,\s*([.,!?;:])/g, '$1') // ", ." -> "."
+      .replace(/(^|\n)[ \t]*,[ \t]*/g, '$1') // drop a leading comma on a line
+      .replace(/[ \t]{2,}/g, ' '); // collapse runs of spaces
   }
 
   // -------------------------------------------------- Deterministic fallback ---
@@ -298,19 +321,20 @@ Their message: """${input.message}"""`;
 
   private fallbackEmail(input: LeadAnalysisInput): LeadEmail {
     const service = input.service || this.inferService(input.message);
-    return {
-      subject: `${service} — let's talk, ${input.company}`,
-      body: `Hi ${input.fullName.split(' ')[0] || input.fullName},
+    const firstName = input.fullName.split(' ')[0] || input.fullName;
+    return this.cleanEmail({
+      subject: `Following up on your enquiry, ${input.company}`,
+      body: `Hi ${firstName},
 
-Thank you for reaching out to Crestview Group. Based on what you shared, it sounds like your organisation could benefit from a focused look at ${service.toLowerCase()}.
+Thank you for reaching out to Crestview Group. I read through what you shared, and it sounds like ${service} is where we can be most useful to you and the team at ${input.company}.
 
-Our team helps businesses turn challenges like yours into clear, practical plans — and then supports you through delivery so the results actually land.
+We have helped businesses work through challenges like this many times. We start by understanding what is really going on, agree on a clear plan with you, and then stay close through delivery so the results actually hold.
 
-We'd love to learn more about your goals and discuss how we can help. Are you available for a short introductory call in the next few days?
+I would love to learn more about your goals and show you how this could work for you. Would you be open to a short introductory call in the next few days?
 
 Kind regards,
 The Crestview Group Team`,
-    };
+    });
   }
 
   private inferService(message: string): string {

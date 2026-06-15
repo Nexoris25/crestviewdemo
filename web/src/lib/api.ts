@@ -1,10 +1,27 @@
 /**
- * Thin client for the CrestView NestJS backend. All calls degrade gracefully:
- * if the backend is unreachable, callers fall back to local behaviour so the
- * marketing site still works without the API running.
+ * Thin client for the CrestView NestJS backend.
+ *
+ * The API base resolves at runtime so a single build/.env works both locally
+ * and in production:
+ *   1. NEXT_PUBLIC_API_URL, if set (build-time override);
+ *   2. otherwise localhost when running on localhost (local dev);
+ *   3. otherwise the deployed production API.
  */
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:3001/api";
+const PROD_API_URL = "https://cv-api.nexoristech.com/api";
+
+function apiBase(): string {
+  const override = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "");
+  if (override) return override;
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
+      return "http://localhost:3001/api";
+    }
+  }
+  return PROD_API_URL;
+}
+
+export const API_BASE = apiBase();
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -28,7 +45,7 @@ export interface LeadInput {
 }
 
 async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${apiBase()}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -38,12 +55,12 @@ async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): P
   return (await res.json()) as T;
 }
 
-export async function submitLead(input: LeadInput): Promise<{ id: string } | null> {
-  try {
-    return await postJson<{ id: string }>("/leads", input);
-  } catch {
-    return null; // surface success UX even if backend is offline (demo-friendly)
-  }
+/**
+ * Submits the contact form. Throws on failure so the caller can show a real
+ * error instead of a false "sent" — otherwise leads silently never arrive.
+ */
+export async function submitLead(input: LeadInput): Promise<{ id: string }> {
+  return postJson<{ id: string }>("/leads", input);
 }
 
 export async function askAssistant(messages: ChatTurn[]): Promise<AssistantReply> {

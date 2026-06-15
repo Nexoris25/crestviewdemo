@@ -122,7 +122,7 @@ Crestview Group.`,
             : status === 'Warm'
               ? 'Send a tailored follow-up and propose an intro call.'
               : 'Add to nurture sequence and share a relevant case study.',
-        emailSubject: `${service} — let's talk, ${company}`,
+        emailSubject: `Following up on your enquiry, ${company}`,
         emailBody: `Hi ${firstNames[i]},\n\nThank you for reaching out to Crestview Group. Based on what you shared, our ${service} team can help you make real progress.\n\nAre you available for a short introductory call this week?\n\nKind regards,\nThe Crestview Group Team`,
         createdAt: created,
         updatedAt: created,

@@ -10,9 +10,13 @@ async function bootstrap() {
     new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: false }),
   );
 
-  const origins = (process.env.CORS_ORIGINS ?? 'http://localhost:3003,http://localhost:3002')
+  const origins = (
+    process.env.CORS_ORIGINS ??
+    'https://crestview.nexoristech.com,https://cv-app.nexoristech.com,http://localhost:3003,http://localhost:3002'
+  )
     .split(',')
-    .map((o) => o.trim());
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({ origin: origins, credentials: true });
 
   const port = Number(process.env.PORT ?? 3001);
