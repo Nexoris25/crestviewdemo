@@ -76,7 +76,19 @@ function Leads() {
         </div>
 
         {error ? (
-          <p className="px-5 py-10 text-center text-sm text-hot">{error}</p>
+          <div className="flex flex-col items-center gap-3 px-5 py-10 text-center text-sm text-hot">
+            <span>We couldn&apos;t load your leads. Please confirm the backend service is up and running.</span>
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                load();
+              }}
+              className="inline-flex items-center gap-2 rounded-md bg-hot px-3 py-1.5 text-xs font-semibold text-white hover:bg-hot/90"
+            >
+              Retry
+            </button>
+          </div>
         ) : (
           <LeadsTable rows={leads} onView={setSelected} />
         )}

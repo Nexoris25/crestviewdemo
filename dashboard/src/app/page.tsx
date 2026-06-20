@@ -79,9 +79,19 @@ function Overview() {
       </div>
 
       {error && (
-        <p className="mt-6 rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">
-          {error}. Is the backend running on port 3001?
-        </p>
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-hot/10 px-4 py-3 text-sm text-hot">
+          <span>We couldn&apos;t load your data. Please confirm the backend service is up and running.</span>
+          <button
+            type="button"
+            onClick={() => {
+              setError(null);
+              load();
+            }}
+            className="inline-flex items-center gap-2 rounded-md bg-hot px-3 py-1.5 text-xs font-semibold text-white hover:bg-hot/90"
+          >
+            Retry
+          </button>
+        </div>
       )}
 
       {/* KPIs */}

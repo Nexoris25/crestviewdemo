@@ -1,27 +1,19 @@
 /**
- * Thin client for the CrestView NestJS backend.
+ * Client for the CrestView NestJS backend.
  *
- * The API base resolves at runtime so a single build/.env works both locally
- * and in production:
- *   1. NEXT_PUBLIC_API_URL, if set (build-time override);
- *   2. otherwise localhost when running on localhost (local dev);
- *   3. otherwise the deployed production API.
+ * - The API base URL comes only from NEXT_PUBLIC_API_URL (no hard-coded hosts).
+ * - Requests are retried on transient network / gateway failures, so a brief
+ *   backend hiccup or a dropped idle keep-alive connection recovers
+ *   automatically instead of failing silently.
  */
-const PROD_API_URL = "https://cv-api.nexoristech.com/api";
 
 function apiBase(): string {
-  const override = process.env.NEXT_PUBLIC_API_URL?.replace(/\/+$/, "");
-  if (override) return override;
-  if (typeof window !== "undefined") {
-    const host = window.location.hostname;
-    if (host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0") {
-      return "http://localhost:3001/api";
-    }
+  const url = process.env.NEXT_PUBLIC_API_URL?.trim().replace(/\/+$/, "");
+  if (!url) {
+    throw new Error("NEXT_PUBLIC_API_URL is not configured.");
   }
-  return PROD_API_URL;
+  return url;
 }
-
-export const API_BASE = apiBase();
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -44,20 +36,47 @@ export interface LeadInput {
   consent: boolean;
 }
 
+// Statuses where the request did not get processed by the app, so a retry is safe.
+const RETRYABLE_STATUSES = new Set([408, 425, 429, 502, 503, 504]);
+const MAX_ATTEMPTS = 3;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function postJson<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${apiBase()}${path}`, {
+  const init: RequestInit = {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal,
-  });
-  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-  return (await res.json()) as T;
+  };
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch(`${apiBase()}${path}`, init);
+      if (res.ok) return (await res.json()) as T;
+      if (RETRYABLE_STATUSES.has(res.status) && attempt < MAX_ATTEMPTS) {
+        await sleep(attempt * 400);
+        continue;
+      }
+      throw new Error(`Request failed: ${res.status}`);
+    } catch (err) {
+      lastError = err;
+      // A network error (e.g. a stale/dropped connection) means the request
+      // never reached the server, so retrying it is safe.
+      if (err instanceof TypeError && attempt < MAX_ATTEMPTS) {
+        await sleep(attempt * 400);
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw lastError ?? new Error("Request failed");
 }
 
 /**
- * Submits the contact form. Throws on failure so the caller can show a real
- * error instead of a false "sent" — otherwise leads silently never arrive.
+ * Submits the contact form. Throws on failure (after retries) so the caller can
+ * show a real error instead of a false "sent".
  */
 export async function submitLead(input: LeadInput): Promise<{ id: string }> {
   return postJson<{ id: string }>("/leads", input);
@@ -65,44 +84,17 @@ export async function submitLead(input: LeadInput): Promise<{ id: string }> {
 
 export async function askAssistant(messages: ChatTurn[]): Promise<AssistantReply> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
   try {
     return await postJson<AssistantReply>("/assistant/chat", { messages }, controller.signal);
   } catch {
-    return localAssistantReply(messages.at(-1)?.content ?? "");
+    // After retries the assistant is genuinely unreachable. Be honest rather
+    // than guessing a (possibly wrong) service recommendation.
+    return {
+      reply:
+        "I'm having trouble connecting right now. Please try again in a moment, or reach our team directly at info@crestviewgroup.com or +123 - 777 - 222 - 7272.",
+    };
   } finally {
     clearTimeout(timeout);
   }
-}
-
-/* Offline fallback: keyword → service mapping (mirrors the backend heuristic). */
-const KEYWORDS: { match: RegExp; service: string; reason: string }[] = [
-  {
-    match: /market|expand|new region|country|scale|grow customer|customers/i,
-    service: "Market Entry & Growth",
-    reason: "We help you enter new markets with local intelligence and a clear growth plan.",
-  },
-  {
-    match: /process|operation|efficien|workflow|deadline|productiv|cost|approval/i,
-    service: "Operations & Process Improvement",
-    reason: "We identify bottlenecks and build efficient, scalable processes.",
-  },
-  {
-    match: /financ|cash|budget|forecast|invest|profit|revenue/i,
-    service: "Financial Advisory & Planning",
-    reason: "We strengthen your financial foundation and plan for long-term value.",
-  },
-];
-
-export function localAssistantReply(text: string): AssistantReply {
-  const hit = KEYWORDS.find((k) => k.match.test(text));
-  const { service, reason } = hit ?? {
-    service: "Business Strategy & Advisory",
-    reason: "We help you develop a confident strategy that drives sustainable growth.",
-  };
-  return {
-    reply: "Thanks for sharing — based on what you described, here's where we can help most:",
-    suggestedService: service,
-    reason,
-  };
 }
