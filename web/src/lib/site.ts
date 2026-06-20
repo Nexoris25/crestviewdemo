@@ -14,7 +14,7 @@ export const SITE = {
   description:
     "CrestView is a consulting partner helping ambitious businesses across Africa grow with clarity, insight and practical strategy.",
   footerBlurb: "Trusted advisor to ambitious businesses in Africa and beyond.",
-  builtBy: { label: "Nexoris Technologies", href: "https://nexoris.tech" },
+  builtBy: { label: "Nexoris Technologies", href: "https://nexoristech.com" },
   copyrightYear: 2026,
 } as const;
 
