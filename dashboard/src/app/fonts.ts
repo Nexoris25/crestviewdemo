@@ -11,6 +11,7 @@ export const poppins = localFont({
   ],
   variable: "--font-poppins",
   display: "swap",
+  preload: false,
 });
 
 export const playfair = localFont({
@@ -22,4 +23,5 @@ export const playfair = localFont({
   ],
   variable: "--font-playfair",
   display: "swap",
+  preload: false,
 });
